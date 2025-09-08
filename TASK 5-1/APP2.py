@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from collections import OrderedDict
 
 app = Flask(__name__)
 
@@ -63,16 +64,22 @@ students = {
 
 # Helper function to reorder fields
 def format_student(student):
-    return {
-        "name": student["name"],
-        "rollno": student["rollno"],
-        "marks": student["marks"]
-    }
+    return OrderedDict([
+        ("name", student["name"]),
+        ("rollno", student["rollno"]),
+        ("marks", OrderedDict([
+            ("science", student["marks"]["science"]),
+            ("english", student["marks"]["english"]),
+            ("math", student["marks"]["math"]),
+            ("history", student["marks"]["history"]),
+            ("geography", student["marks"]["geography"])
+        ]))
+    ])
 
 # GET all students
 @app.route('/students', methods=['GET'])
 def get_students():
-    formatted_students = {id: format_student(stu) for id, stu in students.items()}
+    formatted_students = OrderedDict((id, format_student(stu)) for id, stu in students.items())
     return jsonify(formatted_students)
 
 # GET single student
