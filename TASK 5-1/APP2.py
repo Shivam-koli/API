@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from collections import OrderedDict
 
 app = Flask(__name__)
@@ -98,12 +98,29 @@ def add_student():
     students[new_id] = data
     return jsonify({"id": new_id, "student": format_student(data)})
 
-# PUT - update student details
+# PUT - update student details fully
 @app.route('/students/<int:id>', methods=['PUT'])
 def update_student(id):
     if id in students:
         students[id] = request.get_json()
         return jsonify(format_student(students[id]))
+    return jsonify({"error": "Student not found"}), 404
+
+# PATCH - update student partially
+@app.route('/students/<int:id>', methods=['PATCH'])
+def patch_student(id):
+    if id in students:
+        data = request.get_json()
+        student = students[id]
+        # Update fields if present
+        if "name" in data:
+            student["name"] = data["name"]
+        if "rollno" in data:
+            student["rollno"] = data["rollno"]
+        if "marks" in data:
+            for subject, mark in data["marks"].items():
+                student["marks"][subject] = mark
+        return jsonify(format_student(student))
     return jsonify({"error": "Student not found"}), 404
 
 # DELETE - remove a student
@@ -113,6 +130,20 @@ def delete_student(id):
         deleted = students.pop(id)
         return jsonify({"deleted": format_student(deleted)})
     return jsonify({"error": "Student not found"}), 404
+
+# HEAD - get only headers (example)
+@app.route('/students', methods=['HEAD'])
+def head_students():
+    response = make_response()
+    response.headers["X-Total-Students"] = str(len(students))
+    return response
+
+# OPTIONS - allowed methods
+@app.route('/students', methods=['OPTIONS'])
+def options_students():
+    response = make_response()
+    response.headers["Allow"] = "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+    return response
 
 # Run app
 if __name__ == '__main__':
